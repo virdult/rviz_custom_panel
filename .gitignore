@@ -1,0 +1,24 @@
+# ROS 2 Build/Install folders
+build/
+install/
+log/
+
+# Qt / C++ generated files
+*.o
+*.so
+*.os
+*.moc
+moc_*.cpp
+ui_*.h
+qrc_*.cpp
+CMakeCache.txt
+CMakeFiles/
+Makefile
+cmake_install.cmake
+
+# IDEs / OS files
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store

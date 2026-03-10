@@ -1,0 +1,19 @@
+<library path="rviz_custom_panel">
+  <class name="rviz_custom_panel/VehicleMetricsPanel"
+         type="rviz_custom_panel::VehicleMetricsPanel"
+         base_class_type="rviz_common::Panel">
+    <description>Display vehicle speed, battery, and auto/manual status.</description>
+  </class>
+  
+  <class name="rviz_custom_panel/VehicleExtrasPanel"
+         type="rviz_custom_panel::VehicleExtrasPanel"
+         base_class_type="rviz_common::Panel">
+    <description>Display localization covariance and EKF stats.</description>
+  </class>
+
+  <class name="rviz_custom_panel/VehicleDriversPanel"
+         type="rviz_custom_panel::VehicleDriversPanel"
+         base_class_type="rviz_common::Panel">
+    <description>Monitor driver and module health based on message frequencies.</description>
+  </class>
+</library>
