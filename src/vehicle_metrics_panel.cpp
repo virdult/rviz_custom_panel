@@ -356,8 +356,8 @@ void VehicleDriversPanel::onInitialize() {
     createMonitor("SBG 1 NavSat", "/sbg_device1/imu/nav_sat_fix", "sensor_msgs/msg/NavSatFix", 4.0, 4.5);
     createMonitor("SBG 2 NavSat", "/sbg_device2/imu/nav_sat_fix", "sensor_msgs/msg/NavSatFix", 4.0, 4.5);
     createMonitor("ZED Left Cam", "/zed2_left_camera/image_raw", "sensor_msgs/msg/Image", 14.0, 18.0);
-    createMonitor("NTRIP 1 RTCM", "/sbg_device2/ntrip_client/rtcm", "std_msgs/msg/UInt8MultiArray", 1.8, 2.4);
-    createMonitor("NTRIP 2 RTCM", "/sbg_device2/ntrip_client/rtcm2", "std_msgs/msg/UInt8MultiArray", 1.8, 2.4);
+    createMonitor("NTRIP 1 RTCM", "/sbg_device1/ntrip_client/rtcm", "rtcm_msgs/msg/Message", 1.8, 2.4);
+    createMonitor("NTRIP 2 RTCM", "/sbg_device2/ntrip_client/rtcm2", "rtcm_msgs/msg/Message", 1.8, 2.4);
 
     update_timer_->start(500); 
 }
