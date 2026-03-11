@@ -127,14 +127,14 @@ void VehicleExtrasPanel::onInitialize() {
     ros_node_ = node_ptr->get_raw_node();
 
     nav_sat_1 = ros_node_->create_subscription<sensor_msgs::msg::NavSatFix>(
-        "/sensing/gps_front/fix", 10, [this](const sensor_msgs::msg::NavSatFix::SharedPtr msg) {
+        "/sbg_device1/imu/nav_sat_fix", 10, [this](const sensor_msgs::msg::NavSatFix::SharedPtr msg) {
             current_cov_0_navsat1 = msg->position_covariance[0];
             current_cov_1_navsat1 = msg->position_covariance[4];
             Q_EMIT onDataReceived();
         });
 
     nav_sat_2 = ros_node_->create_subscription<sensor_msgs::msg::NavSatFix>(
-        "/sensing/gps_rear/fix", 10, [this](const sensor_msgs::msg::NavSatFix::SharedPtr msg) {
+        "/sbg_device2/imu/nav_sat_fix", 10, [this](const sensor_msgs::msg::NavSatFix::SharedPtr msg) {
             current_cov_0_navsat2 = msg->position_covariance[0];
             current_cov_1_navsat2 = msg->position_covariance[4];
             Q_EMIT onDataReceived();
@@ -148,17 +148,16 @@ void VehicleExtrasPanel::onInitialize() {
 }
 
 void VehicleExtrasPanel::updateUI() {
-    // Math: Standard Deviation (mm) = sqrt(Variance (m^2)) * 1000
-    double std_x_1 = std::sqrt(std::max(0.0, current_cov_0_navsat1)) * 1000.0;
-    double std_y_1 = std::sqrt(std::max(0.0, current_cov_1_navsat1)) * 1000.0;
-    double std_x_2 = std::sqrt(std::max(0.0, current_cov_0_navsat2)) * 1000.0;
-    double std_y_2 = std::sqrt(std::max(0.0, current_cov_1_navsat2)) * 1000.0;
+    // Math: Standard Deviation (cm) = sqrt(Variance (m^2)) * 100
+    double std_x_1 = std::sqrt(std::max(0.0, current_cov_0_navsat1)) * 100.0;
+    double std_y_1 = std::sqrt(std::max(0.0, current_cov_1_navsat1)) * 100.0;
+    double std_x_2 = std::sqrt(std::max(0.0, current_cov_0_navsat2)) * 100.0;
+    double std_y_2 = std::sqrt(std::max(0.0, current_cov_1_navsat2)) * 100.0;
 
-    // Output formatted to 1 decimal place (e.g., "14.5")
-    std_x_label_navsat1_->setText(QString::number(std_x_1, 'f', 1));
-    std_y_label_navsat1_->setText(QString::number(std_y_1, 'f', 1));
-    std_x_label_navsat2_->setText(QString::number(std_x_2, 'f', 1));
-    std_y_label_navsat2_->setText(QString::number(std_y_2, 'f', 1));
+    std_x_label_navsat1_->setText(QString::number(std_x_1, 'f', 5));
+    std_y_label_navsat1_->setText(QString::number(std_y_1, 'f', 5));
+    std_x_label_navsat2_->setText(QString::number(std_x_2, 'f', 5));
+    std_y_label_navsat2_->setText(QString::number(std_y_2, 'f', 5));
 
     int text_angle = static_cast<int>(current_steering_);
     float visual_angle = (static_cast<float>(current_steering_) - 1800.0f) / 36.0f;
@@ -221,38 +220,37 @@ void VehicleExtrasPanel::setupUI() {
     // FRONT GPS HEADER
     v_layout->addWidget(new QLabel("<b>Front GPS:</b>"));
     
-    // FRONT GPS ROWS (Added immediately after header)
+    // FRONT GPS ROWS
     auto* row1 = new QHBoxLayout();
-    row1->addWidget(new QLabel("Std X (mm):"));
-    std_x_label_navsat1_ = new QLabel("0.0");
+    row1->addWidget(new QLabel("Std X (cm):"));
+    std_x_label_navsat1_ = new QLabel("0.00000");
     std_x_label_navsat1_->setStyleSheet("font-family: monospace; font-weight: bold; color: #16a085; font-size: 11pt;");
     row1->addStretch(); row1->addWidget(std_x_label_navsat1_);
     v_layout->addLayout(row1);
     
     auto* row2 = new QHBoxLayout();
-    row2->addWidget(new QLabel("Std Y (mm):"));
-    std_y_label_navsat1_ = new QLabel("0.0");
+    row2->addWidget(new QLabel("Std Y (cm):"));
+    std_y_label_navsat1_ = new QLabel("0.00000");
     std_y_label_navsat1_->setStyleSheet("font-family: monospace; font-weight: bold; color: #16a085; font-size: 11pt;");
     row2->addStretch(); row2->addWidget(std_y_label_navsat1_);
     v_layout->addLayout(row2);
     
-    // Adds a 10-pixel vertical gap for clarity
     v_layout->addSpacing(10); 
     
     // REAR GPS HEADER
     v_layout->addWidget(new QLabel("<b>Rear GPS:</b>"));
     
-    // REAR GPS ROWS (Added immediately after header)
+    // REAR GPS ROWS
     auto* row3 = new QHBoxLayout();
-    row3->addWidget(new QLabel("Std X (mm):"));
-    std_x_label_navsat2_ = new QLabel("0.0");
+    row3->addWidget(new QLabel("Std X (cm):"));
+    std_x_label_navsat2_ = new QLabel("0.00000");
     std_x_label_navsat2_->setStyleSheet("font-family: monospace; font-weight: bold; color: #2980b9; font-size: 11pt;");
     row3->addStretch(); row3->addWidget(std_x_label_navsat2_);
     v_layout->addLayout(row3);
     
     auto* row4 = new QHBoxLayout();
-    row4->addWidget(new QLabel("Std Y (mm):"));
-    std_y_label_navsat2_ = new QLabel("0.0");
+    row4->addWidget(new QLabel("Std Y (cm):"));
+    std_y_label_navsat2_ = new QLabel("0.00000");
     std_y_label_navsat2_->setStyleSheet("font-family: monospace; font-weight: bold; color: #2980b9; font-size: 11pt;");
     row4->addStretch(); row4->addWidget(std_y_label_navsat2_);
     v_layout->addLayout(row4);
