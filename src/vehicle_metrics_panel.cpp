@@ -7,6 +7,9 @@
 #include <algorithm>
 #include <pluginlib/class_list_macros.hpp>
 
+// Ensure the base interface is included so we can access the context
+#include "rclcpp/node_interfaces/node_base_interface.hpp"
+
 namespace rviz_custom_panel {
 
 // ==========================================
@@ -63,24 +66,31 @@ void VehicleMetricsPanel::updateUI() {
 void VehicleMetricsPanel::updateStateUI() {
     QString text;
     QString style = "font-size: 14pt; font-weight: bold; padding: 8px; border-radius: 6px; ";
+    
     if (!received_control_data_) {
         text = "NO CONTROL DATA";
         style += "color: #7f8c8d; background-color: #f2f3f4;";
-    } else if (mode_auto_ == 1) {
+    } 
+    else if (mode_auto_ == 1) {
         text = "AUTO: " + plannerStateToString(current_planner_id_);
         style += "color: #ffffff; background-color: #27ae60; border: 2px solid #1e8449;";
-    } else {
+    } 
+    else {
         text = "MANUAL CONTROL";
         style += "color: #ffffff; background-color: #e67e22; border: 2px solid #d35400;";
     }
+    
     state_label_->setText(text);
     state_label_->setStyleSheet(style);
 }
 
 QString VehicleMetricsPanel::plannerStateToString(int s) {
     switch (s) {
-        case 1: return "CENTERLINE"; case 2: return "LATTICE";
-        case 3: return "ASTAR"; case 4: return "PARKING";
+        case 1: return "CENTERLINE"; 
+        case 2: return "LATTICE";
+        case 3: return "ASTAR"; 
+        case 4: return "PARKING";
+        case 5: return "CAMERA MODE";
         default: return "ACTIVE";
     }
 }
@@ -286,15 +296,16 @@ VehicleDriversPanel::VehicleDriversPanel(QWidget* parent) : rviz_common::Panel(p
 }
 
 VehicleDriversPanel::~VehicleDriversPanel() {
+    if (update_timer_) {
+        update_timer_->stop();
+    }
+    
     running_ = false;
     if (executor_) {
         executor_->cancel();
     }
     if (spin_thread_.joinable()) {
         spin_thread_.join();
-    }
-    if (isolated_context_ && isolated_context_->is_valid()) {
-        isolated_context_->shutdown("Panel destroyed");
     }
 }
 
@@ -316,33 +327,36 @@ void VehicleDriversPanel::createMonitor(const QString& name, const std::string& 
 
     monitor->sub = monitor_node_->create_generic_subscription(
         topic, msg_type, qos_profile,
-        [this, monitor](std::shared_ptr<rclcpp::SerializedMessage> /*msg*/) {
+        [monitor](std::shared_ptr<rclcpp::SerializedMessage> /*msg*/) {
             std::lock_guard<std::mutex> lock(monitor->mutex);
-            monitor->timestamps.push_back(this->monitor_node_->now());
+            monitor->timestamps.push_back(std::chrono::steady_clock::now());
         });
 
     monitors_.push_back(monitor);
 }
 
 void VehicleDriversPanel::onInitialize() {
-    rclcpp::InitOptions init_options;
-    isolated_context_ = std::make_shared<rclcpp::Context>();
-    isolated_context_->init(0, nullptr, init_options);
+    auto node_ptr = getDisplayContext()->getRosNodeAbstraction().lock();
+    if (!node_ptr) return;
+    auto rviz_node = node_ptr->get_raw_node();
+
+    // PROPERLY FETCH THE CONTEXT
+    auto rviz_context = rviz_node->get_node_base_interface()->get_context();
 
     rclcpp::NodeOptions node_options;
-    node_options.context(isolated_context_);
+    node_options.context(rviz_context);
     
     std::string node_name = "rviz_health_monitor_" + std::to_string(rand() % 10000);
     monitor_node_ = std::make_shared<rclcpp::Node>(node_name, node_options);
     
     rclcpp::ExecutorOptions exec_options;
-    exec_options.context = isolated_context_;
+    exec_options.context = rviz_context;
     executor_ = std::make_shared<rclcpp::executors::MultiThreadedExecutor>(exec_options);
     executor_->add_node(monitor_node_);
     
     running_ = true;
-    spin_thread_ = std::thread([this]() {
-        while (running_ && rclcpp::ok(isolated_context_)) {
+    spin_thread_ = std::thread([this, rviz_context]() {
+        while (running_ && rclcpp::ok(rviz_context)) {
             executor_->spin_some(std::chrono::milliseconds(5)); 
         }
     });
@@ -361,7 +375,7 @@ void VehicleDriversPanel::onInitialize() {
 }
 
 void VehicleDriversPanel::updateUI() {
-    rclcpp::Time now = monitor_node_->now();
+    auto now = std::chrono::steady_clock::now();
 
     for (auto& m : monitors_) {
         float raw_hz = 0.0f;
@@ -370,7 +384,7 @@ void VehicleDriversPanel::updateUI() {
             std::lock_guard<std::mutex> lock(m->mutex);
 
             while (!m->timestamps.empty()) {
-                double age_in_seconds = (now - m->timestamps.front()).seconds();
+                double age_in_seconds = std::chrono::duration<double>(now - m->timestamps.front()).count();
                 if (age_in_seconds > 3.0) {
                     m->timestamps.pop_front();
                 } else {
@@ -381,7 +395,7 @@ void VehicleDriversPanel::updateUI() {
             int count = m->timestamps.size();
             
             if (count > 0) {
-                double window_size = (now - m->timestamps.front()).seconds();
+                double window_size = std::chrono::duration<double>(now - m->timestamps.front()).count();
                 if (window_size > 0.2) { 
                     double effective_window = std::min(window_size, 3.0);
                     raw_hz = static_cast<float>(count) / effective_window;

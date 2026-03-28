@@ -14,7 +14,8 @@
 #include <mutex>
 #include <thread>
 #include <atomic>
-#include <cmath> // Added for std::sqrt
+#include <cmath> 
+#include <chrono> // Added for robust, Gazebo-immune time tracking
 
 #include "rviz_common/panel.hpp"
 #include "rclcpp/rclcpp.hpp"
@@ -87,7 +88,7 @@ private Q_SLOTS:
 
 private:
   void setupUI();
-  void drawSteeringWheel(float angle); // Replaced rotateWheel for flawless rendering
+  void drawSteeringWheel(float angle); 
 
   rclcpp::Node::SharedPtr ros_node_;
   rclcpp::Subscription<sensor_msgs::msg::NavSatFix>::SharedPtr nav_sat_1;
@@ -126,7 +127,7 @@ private:
     QString name;
     float orange_thresh; 
     float green_thresh;  
-    std::deque<rclcpp::Time> timestamps;
+    std::deque<std::chrono::steady_clock::time_point> timestamps; // Uses CPU time, not Sim time
     QLabel* status_label;
     rclcpp::GenericSubscription::SharedPtr sub; 
     float displayed_hz = 0.0f; 
@@ -138,8 +139,7 @@ private:
   QVBoxLayout* main_layout_;
   QGridLayout* grid_layout_;
 
-  // Completely isolated ROS 2 Context and Executor
-  rclcpp::Context::SharedPtr isolated_context_;
+  // Removed isolated_context_ completely.
   rclcpp::Node::SharedPtr monitor_node_; 
   rclcpp::executors::MultiThreadedExecutor::SharedPtr executor_; 
   
